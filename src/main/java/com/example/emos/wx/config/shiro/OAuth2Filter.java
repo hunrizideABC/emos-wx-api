@@ -1,7 +1,6 @@
 package com.example.emos.wx.config.shiro;
 
 import cn.hutool.core.util.StrUtil;
-import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import org.apache.http.HttpStatus;
 import org.apache.shiro.authc.AuthenticationException;
@@ -38,6 +37,7 @@ public class OAuth2Filter extends AuthenticatingFilter {
     @Autowired
     private RedisTemplate redisTemplate;
 
+    //拦截请求之后，用于把令牌字符串封装成令牌对象
     @Override
     protected AuthenticationToken createToken(ServletRequest request, ServletResponse response) throws Exception {
         HttpServletRequest req= (HttpServletRequest) request;
@@ -47,27 +47,29 @@ public class OAuth2Filter extends AuthenticatingFilter {
         }
         return new OAuth2Token(token);
     }
-
+    //拦截请求，判断请求是否需要被Shiro处理
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
         HttpServletRequest req= (HttpServletRequest) request;
         if(req.getMethod().equals(RequestMethod.OPTIONS.name())){
             return true;
         }
+        // 除了Options请求之外，所有请求都要被Shiro处理
         return false;
     }
-
+    //该方法用于处理所有应该被Shiro处理的请求
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
         HttpServletRequest req= (HttpServletRequest) request;
         HttpServletResponse resp= (HttpServletResponse) response;
         resp.setContentType("text/html");
         resp.setCharacterEncoding("UTF-8");
+        //允许跨域请求
         resp.setHeader("Access-Control-Allow-Credentials", "true");
         resp.setHeader("Access-Control-Allow-Origin", req.getHeader("Origin"));
 
         threadLocalToken.clear();
-
+        //获取请求token，如果token不存在，直接返回401
         String token=getRequestToken(req);
         if(StrUtil.isBlank(token)){
             resp.setStatus(HttpStatus.SC_UNAUTHORIZED);
@@ -77,6 +79,7 @@ public class OAuth2Filter extends AuthenticatingFilter {
         try{
             jwtUtil.verifierToken(token);
         }catch (TokenExpiredException e){
+            //客户端令牌过期，查询Redis中是否存在令牌，如果存在令牌就重新生成一个令牌给客户端
             if(redisTemplate.hasKey(token)){
                 redisTemplate.delete(token);
                 int userId=jwtUtil.getUserId(token);
@@ -85,6 +88,7 @@ public class OAuth2Filter extends AuthenticatingFilter {
                 threadLocalToken.setToken(token);
             }
             else{
+                //如果Redis不存在令牌，让用户重新登录
                 resp.setStatus(HttpStatus.SC_UNAUTHORIZED);
                 resp.getWriter().print("令牌已过期");
                 return false;
@@ -118,7 +122,14 @@ public class OAuth2Filter extends AuthenticatingFilter {
 
     @Override
     public void doFilterInternal(ServletRequest request, ServletResponse response, FilterChain chain) throws ServletException, IOException {
+        HttpServletRequest req= (HttpServletRequest) request;
+        HttpServletResponse resp= (HttpServletResponse) response;
+        resp.setContentType("text/html");
+        resp.setCharacterEncoding("UTF-8");
+        resp.setHeader("Access-Control-Allow-Credentials", "true");
+        resp.setHeader("Access-Control-Allow-Origin", req.getHeader("Origin"));
         super.doFilterInternal(request, response, chain);
+
     }
 
     private String getRequestToken(HttpServletRequest request){

@@ -30,11 +30,13 @@ public class OAuth2Realm extends AuthorizingRealm {
      */
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection collection) {
-        TbUser user= (TbUser) collection.getPrimaryPrincipal();
-        int userId=user.getId();
-        Set<String> permsSet=userService.searchUserPermissions(userId);
+//        TbUser user= (TbUser) collection.getPrimaryPrincipal();
+//        int userId=user.getId();
+//        Set<String> permsSet=userService.searchUserPermissions(userId);
+//        SimpleAuthorizationInfo info=new SimpleAuthorizationInfo();
+//        info.setStringPermissions(permsSet);
+
         SimpleAuthorizationInfo info=new SimpleAuthorizationInfo();
-        info.setStringPermissions(permsSet);
         return info;
     }
 
@@ -51,6 +53,7 @@ public class OAuth2Realm extends AuthorizingRealm {
             throw new LockedAccountException("账号已被锁定,请联系管理员");
         }
         SimpleAuthenticationInfo info=new SimpleAuthenticationInfo(user,accessToken,getName());
+
         return info;
     }
 }

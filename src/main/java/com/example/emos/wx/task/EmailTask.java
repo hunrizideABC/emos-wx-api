@@ -12,15 +12,15 @@ import java.io.Serializable;
 @Component
 @Scope("prototype")
 public class EmailTask implements Serializable {
-//    @Autowired
-//    private JavaMailSender javaMailSender;
-//    @Value("${emos.email.system}")
-//    private String mailbox;
-//
-//    @Async
-//    public void sendAsync(SimpleMailMessage message){
-//        message.setFrom(mailbox);
-//        message.setCc(mailbox);
-//        javaMailSender.send(message);
-//    }
+    @Autowired
+    private JavaMailSender javaMailSender;
+    @Value("${emos.email.system}")
+    private String mailbox;
+
+    @Async
+    public void sendAsync(SimpleMailMessage message){
+        message.setFrom(mailbox);
+        message.setCc(mailbox);
+        javaMailSender.send(message);
+    }
 }
